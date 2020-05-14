@@ -72,7 +72,7 @@ def get_dat(model, cols_dict, reload=False, save=True, verbose=True):
         try:
             dat_table = load_dat_cache(model=model, verbose=verbose)
         except FileNotFoundError:
-            printv('dat cache not found, reloading', verbose)
+            tools.printv('dat cache not found, reloading', verbose)
 
     # fall back on loading raw .dat
     if dat_table is None:
@@ -83,7 +83,7 @@ def get_dat(model, cols_dict, reload=False, save=True, verbose=True):
 
     return dat_table
 
-def extract_dat(model, cols_dict, run='run', verbose=True):
+def extract_dat(model, cols_dict, verbose=True):
     """Extract and reduce data from .dat file
     Returns : dict of 1D quantities
     parameters
@@ -94,14 +94,20 @@ def extract_dat(model, cols_dict, run='run', verbose=True):
     run: str
     verbose : bool
     """
-    filepath = paths.dat_filepath(model=model, run=run)
-    printv(f'Extracting dat: {filepath}', verbose=verbose)
+
     # TODO: NEED to loop over cols_dict, load all of the quantities, and form on DataFrame object
-    idxs = []
-    keys = []
+ 
+    df = pd.DataFrame()
 
-    for key, idx_1 in cols_dict.items():
-        idxs += [idx_1 - 1]  # change to zero-indexed
-        keys += [key]
+    i = 0
+    for key in cols_dict:
+        filepath = paths.dat_filepath(model=model, quantity=key)
+        tools.printv(f'Extracting dat: {filepath}', verbose=verbose)
 
-    return pd.read_fwf(filepath, header=None, names=['time', quantity])
+        df_temp = pd.read_fwf(filepath, header=None, names=['time', key])
+
+        if (i == 0):
+            df['time'] = df_temp['time']
+        df[key] = df_temp[key]
+    
+    return df

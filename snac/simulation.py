@@ -64,7 +64,6 @@ class Simulation:
         t0 = time.time()
         self.verbose = verbose
         self.model = model
-        self.run = run
 
         self.model_path = paths.model_path(model=model)
         self.output_path = os.path.join(self.model_path, output_dir)
@@ -74,7 +73,6 @@ class Simulation:
         self.profiles = xr.Dataset()     # radial profile data for each timestep
 
         self.load_config(config=config)
-        self.load_chk_table(reload=reload, save=save)
 
         if load_all:
             self.load_all(reload=reload, save=save)
@@ -101,7 +99,7 @@ class Simulation:
         if verbose:
             print(string, **kwargs)
 
-    def load_config(self, config='default'):
+    def load_config(self, config='snec'):
         """Load config parameters from file
         parameters
         ----------
@@ -134,5 +132,5 @@ class Simulation:
         """
         self.dat = load.get_dat(
                         model=self.model,
-                        cols_dict=self.config['dat_quantities'], reload=reload,
+                        cols_dict=self.config['dat_quantities']['fields'], reload=reload,
                         save=save, verbose=self.verbose)

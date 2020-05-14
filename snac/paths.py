@@ -49,7 +49,7 @@ def model_path(model):
         snec_models_path = os.environ['SNEC_MODELS']
     except KeyError:
         raise EnvironmentError('Environment variable SNEC_MODELS not set. '
-                               'Set path to directory containing SNEC models, e.g., '
+                               'Set path to directory containing SNEC models, e.g., ' )
 
     return os.path.join(snec_models_path, model)
 
@@ -61,7 +61,7 @@ def temp_path(model):
     return os.path.join(m_path, 'temp')
 
 
-def output_path(model, output_dir='output'):
+def output_path(model, output_dir='Data'):
     """Return path to model output directory
     """
     m_path = model_path(model)
@@ -76,16 +76,17 @@ def dat_filename(quantity):
     return f'{quantity}.dat'
 
 
-def dat_filepath(model):
+def dat_filepath(model, quantity):
     """Return filepath to .dat file
     parameters
     ----------
     run : str
     model : str
     """
-    filename = dat_filename(run)
+    filename = dat_filename(quantity)
     m_path = model_path(model)
-    return os.path.join(m_path, filename)
+    d_path = output_path(model)
+    return os.path.join(d_path, filename)
 
 
 def dat_temp_filename(model, run):
