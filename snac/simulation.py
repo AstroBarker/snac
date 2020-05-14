@@ -11,9 +11,6 @@ Info
     ---------------
     model: Name of the SNEC set (i.e. the directory name).
 
-    run: sub-model label (i.e. the prefix used in sub-directories,
-           For multiple SNEC output directories in one "Model"
-
     Data structures
     ---------------
     dat: Integrated time-series quantities found in the `.dat` files.
@@ -42,7 +39,7 @@ from . import quantities
 class Simulation:
     def __init__(self, model, config='snec',
                  output_dir='Data', verbose=True, load_all=True,
-                 reload=False, save=True):
+                 reload=False, save=True, load_profiles=False):
         """Object representing a 1D flash simulation
         parameters
         ----------
@@ -60,6 +57,8 @@ class Simulation:
             save extracted model data to temporary files (for faster loading)
         verbose : bool
             print information to terminal
+        load_profiles : bool
+            do, or do not, load mass profiles
         """
         t0 = time.time()
         self.verbose = verbose
@@ -71,11 +70,13 @@ class Simulation:
         self.config = None               # model-specific configuration; see load_config()
         self.dat = None                  # integrated data from .dat; see load_dat()
         self.profiles = xr.Dataset()     # radial profile data for each timestep
+        self.scalars = None              # scalar quantities: time of shock breakout, plateau duration...
 
+        # self.get_scalars()
         self.load_config(config=config)
 
         if load_all:
-            self.load_all(reload=reload, save=save)
+            self.load_all(reload=reload, save=save, load_profiles=load_profiles)
 
         t1 = time.time()
         self.printv(f'Model load time: {t1-t0:.3f} s')
@@ -107,7 +108,7 @@ class Simulation:
         """
         self.config = load.load_config(name=config, verbose=self.verbose)
 
-    def load_all(self, reload=False, save=True):
+    def load_all(self, reload=False, save=True, load_profiles=False):
         """Load all model data
         parameters
         ----------
@@ -115,7 +116,8 @@ class Simulation:
         save : bool
         """
         self.load_dat(reload=reload, save=save)
-        # load profiles
+        if load_profiles:
+            self.load_all_profiles(reload=reload, save=save)
 
 
 
@@ -134,3 +136,18 @@ class Simulation:
                         model=self.model,
                         cols_dict=self.config['dat_quantities']['fields'], reload=reload,
                         save=save, verbose=self.verbose)
+
+    def load_all_profiles(self, reload=False, save=True):
+            """Load profiles
+
+            parameters
+            ----------
+            reload : bool
+            save : bool
+            """
+            config = self.config['profiles']
+
+            self.profiles = load.get_profiles(
+                                    model=self.model,
+                                    fields=config['fields'],
+                                    reload=reload, save=save, verbose=self.verbose)

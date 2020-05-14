@@ -7,6 +7,7 @@ Info:
 import os
 import numpy as np
 import pandas as pd
+import pickle
 import configparser
 import ast
 import subprocess
@@ -72,7 +73,7 @@ def get_dat(model, cols_dict, reload=False, save=True, verbose=True):
         try:
             dat_table = load_dat_cache(model=model, verbose=verbose)
         except FileNotFoundError:
-            tools.printv('dat cache not found, reloading', verbose)
+            tools.printv('dat cache not found, manually loading', verbose)
 
     # fall back on loading raw .dat
     if dat_table is None:
@@ -84,18 +85,16 @@ def get_dat(model, cols_dict, reload=False, save=True, verbose=True):
     return dat_table
 
 def extract_dat(model, cols_dict, verbose=True):
-    """Extract and reduce data from .dat file
+    """Extract data from .dat file
     Returns : dict of 1D quantities
     parameters
     ----------
     model : str
-    cols_dict : {}
-        dictionary with column names and indexes (Note: 1-indexed)
+    cols_dict : []
+        list with column names
     run: str
     verbose : bool
     """
-
-    # TODO: NEED to loop over cols_dict, load all of the quantities, and form on DataFrame object
  
     df = pd.DataFrame()
 
@@ -111,3 +110,183 @@ def extract_dat(model, cols_dict, verbose=True):
         df[key] = df_temp[key]
     
     return df
+
+def save_dat_cache(dat, model, verbose=True):
+    """Save pre-extracted .dat quantities, for faster loading
+    parameters
+    ----------
+    dat : pd.DataFrame
+        data table as returned by extract_dat()
+    model : str
+    run : str
+    verbose : bool
+    """
+    ensure_temp_dir_exists(model, verbose=False)
+    filepath = paths.dat_temp_filepath(model=model)
+
+    tools.printv(f'Saving dat cache: {filepath}', verbose)
+    dat.to_pickle(filepath)
+
+
+def load_dat_cache(model, verbose=True):
+    """Load pre-extracted .dat quantities (see: save_dat_cache)
+    parameters
+    ----------
+    model : str
+    run : str
+    verbose : bool
+    """
+    filepath = paths.dat_temp_filepath(model=model)
+    tools.printv(f'Loading dat cache: {filepath}', verbose)
+    return pd.read_pickle(filepath)    
+
+# ===============================================================
+#                      Profiles
+# ===============================================================
+def get_profiles(model, fields, reload=False, save=True, verbose=True):
+    """Get set of integrated quantities, as contained in .dat files
+    Returns : pandas.DataFrame
+    parameters
+    ----------
+    model   : str
+        dictionary with column names and indexes (Note: 1-indexed)
+    fields  : []    
+    reload  : bool
+    save    : bool
+    verbose : bool
+    """
+    dat_table = None
+
+    # attempt to load temp file
+    if reload:
+        try:
+            dat_table = load_profile_cache(model=model, verbose=verbose)
+        except FileNotFoundError:
+            tools.printv('profile cache not found, manually loading', verbose)
+
+    # fall back on loading raw .xg
+    if dat_table is None:
+        dat_table = extract_profile(model, fields=fields, verbose=verbose)
+        if save:
+            save_profile_cache(dat_table, model=model, 
+                           verbose=verbose)
+
+    return dat_table
+
+def extract_profile(model, fields, verbose=True):
+    """Extract data from .xg file
+    Returns : dict of 1D quantities
+    parameters
+    ----------
+    model : str
+    cols_dict : {}
+        dictionary with column names and indexes (Note: 1-indexed)
+    run: str
+    verbose : bool
+    """
+ 
+    df = {}
+
+    i = 0
+    for key in fields:
+        filepath = paths.profile_filepath(model=model, quantity=key)
+        tools.printv(f'Extracting profile: {filepath}', verbose=verbose)
+
+        df[key] = xg_to_dict(filepath)
+
+    return df
+
+def save_profile_cache(dat, model, verbose=True):
+    """Save pre-extracted .xg quantities, for faster loading
+    parameters
+    ----------
+    dat : dict
+        data as returned by extract_profile()
+    model : str
+    run : str
+    verbose : bool
+    """
+    ensure_temp_dir_exists(model, verbose=False)
+    filepath = paths.profile_temp_filepath(model=model)
+
+    tools.printv(f'Saving profile cache: {filepath}', verbose)
+
+    pickle.dump( dat, open( filepath, "wb" ) )
+
+def load_profile_cache(model, verbose=True):
+    """Load pre-extracted .xg quantities (see: save_dat_cache)
+    parameters
+    ----------
+    model : str
+    run : str
+    verbose : bool
+    """
+    filepath = paths.profile_temp_filepath(model=model)
+    tools.printv(f'Loading profile cache: {filepath}', verbose)
+    return pickle.load( open(filepath, 'rb') )
+
+def xg_to_dict(fn):
+    """
+    Function to parse SNEC .xg files into dictionaries
+    Slow.
+
+    Parameters:
+    -----------
+    fn : str
+    """
+    dd = {}
+    with open(fn, 'r') as rf:
+        for line in rf:
+            cols = line.split()
+            # Beginning of time data - make key for this time                                                         
+            if 'Time' in line:
+                time = float(cols[-1])
+                dd[time] = []
+            # In time data -- build x,y arrays                                                                        
+            elif len(cols)==2:
+                dd[time].append(np.fromstring(line, sep=' '))
+            # End of time data (blank line) -- make list into array                                                   
+            else:
+                dd[time] = np.array(dd[time])
+
+    return dd
+
+# ===============================================================
+#              Misc. file things
+# ===============================================================
+def try_mkdir(path, skip=False, verbose=True):
+    """Try to make given directory
+    parameters
+    ----------
+    path: str
+    skip : bool
+        do nothing if directory already exists
+        if skip=false, will ask to overwrite an existing directory
+    verbose : bool
+    """
+    tools.printv(f'Creating directory  {path}', verbose)
+    if os.path.exists(path):
+        if skip:
+            tools.printv('Directory already exists - skipping', verbose)
+        else:
+            print('Directory exists')
+            cont = input('Overwrite? (y/[n]): ')
+
+            if cont == 'y' or cont == 'Y':
+                subprocess.run(['rm', '-r', path])
+                subprocess.run(['mkdir', path])
+            elif cont == 'n' or cont == 'N':
+                sys.exit()
+    else:
+        subprocess.run(['mkdir', '-p', path], check=True)
+
+
+def ensure_temp_dir_exists(model, verbose=True):
+    """Ensure temp directory exists (create if not)
+    parameters
+    ----------
+    model : str
+    verbose : bool
+    """
+    temp_path = paths.temp_path(model)
+    try_mkdir(temp_path, skip=True, verbose=verbose)    

@@ -84,20 +84,54 @@ def dat_filepath(model, quantity):
     model : str
     """
     filename = dat_filename(quantity)
-    m_path = model_path(model)
     d_path = output_path(model)
     return os.path.join(d_path, filename)
 
 
-def dat_temp_filename(model, run):
+def dat_temp_filename(model):
     """Return filename for temporary (cached) dat file
     """
-    return f'{model}_{run}_dat.pickle'
+    return f'{model}_dat.pickle'
 
 
-def dat_temp_filepath(model, run='run'):
+def dat_temp_filepath(model):
     """Return filepath to reduced dat table
     """
     path = temp_path(model)
-    filename = dat_temp_filename(model, run)
-    return os.path.join(path, filename)    
+    filename = dat_temp_filename(model)
+    return os.path.join(path, filename)  
+
+
+# ===============================================================
+#                      Profiles
+# ===============================================================
+def profile_filename(quantity):
+    """Return filename for .dat file
+    """
+    return f'{quantity}.xg'
+
+
+def profile_filepath(model, quantity):
+    """Return filepath to .dat file
+    parameters
+    ----------
+    run : str
+    model : str
+    """
+    filename = profile_filename(quantity)
+    d_path = output_path(model)
+    return os.path.join(d_path, filename)
+
+
+def profile_temp_filename(model):
+    """Return filename for temporary (cached) dat file
+    """
+    return f'{model}_profile.pickle'
+
+
+def profile_temp_filepath(model):
+    """Return filepath to reduced dat table
+    """
+    path = temp_path(model)
+    filename = profile_temp_filename(model)
+    return os.path.join(path, filename) 
