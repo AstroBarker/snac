@@ -232,36 +232,86 @@ class Simulation:
         for col in cols:
             df[col] = self.profiles[col][t][:,1]
 
+        df.time = t / 86400 # Actual timestamp, post shock breakout.
+        df.day = day        # time looking for. 
+
         self.solo_profile = df
 
     # =======================================================
     #                   Quantities
     # =======================================================
 
-    def vel_FeII(self):
+    def vel_FeII(self, day=50.0):
         """
         Compute FeII 5169 line velocity from Sobolev optical depth = 1
         """
-        self.get_profile_day(day=50.0)
+        if (self.solo_profile.day != day):
+            self.get_profile_day(day=day)
+
         tau = quantities.tau_sob(density = self.solo_profile['rho'], 
                                 temp=self.solo_profile['temp'], 
                                 X=self.solo_profile['H_1'], 
                                 t_exp = 50.0 + self.scalars['t_sb']/86400)
         
-        v = quantities.iron_velocity(self.solo_profile['vel'], tau_sob=tau)
-        self.scalars['v_50'] = v
+        self.scalars['v_Fe'] = quantities.iron_velocity(
+                                    self.solo_profile['vel'], tau_sob=tau)
 
-    def compute_total_energy(self):
+    def compute_total_energy(self, day=0.0):
         """
         Compute specific total energy profile.
+        Recomputes and overwrites self.solo_profile
+
+        Parameters:
+        -----------
+        day : float
         """
-        self.get_profile_day(day=0.0)
-        e_tot = quantities.total_energy(mass=self.solo_profile['mass'],
+        if (self.solo_profile.day != day):
+            self.get_profile_day(day=day)
+
+        self.solo_profile['e_tot'] = quantities.total_energy(
+                                        mass=self.solo_profile['mass'],
                                         radius=self.solo_profile['radius'], 
                                         vel=self.solo_profile['vel'], 
                                         rho=self.solo_profile['rho'], 
                                         eps=self.solo_profile['eps'])
                                 
-        self.solo_profile['e_tot'] = e_tot
+
+    def compute_bound_mass(self, day=0.0):
+        """
+        Compute bound mass. See quantities.bound_mass()
+
+        Parameters:
+        -----------
+        day : float
+        """
+
+        if (self.solo_profile.day != day):
+            self.get_profile_day(day=day)
+
+        self.scalars['bound_mass'] = quantities.bound_mass(
+                                    e_tot=self.solo_profile['e_tot'],
+                                    mass=self.solo_profile['mass'])
+        
+    def compute_ejecta_mass(self, day=0.0):
+        """
+        Compute bound mass. See quantities.bound_mass()
+
+        Parameters:
+        -----------
+        day : float
+        """
+
+        if (self.solo_profile.day != day):
+            self.get_profile_day(day=day)
+
+        self.scalars['M_ej'] = quantities.ejecta_mass(
+                                    e_tot = self.solo_profile['e_tot'],
+                                    mass = self.solo_profile['mass']
+        )
+
+
+
+
+
 
 

@@ -50,8 +50,11 @@ for the first time, before pickle'd copies have been made.
 
 The Simulation class contained four primary data structures: 
 `Simulation.profiles`     : dict
+
 `Simulation.solo_profile` : DataFrame
+
 `Simulation.dat`          : DataFrame
+
 `Simulation.scalars`      : DataFrame
 
 `Simulation.profiles` contains the mass profiles loaded, as listed in `snec.ini`, for all output times. Organized by
@@ -66,7 +69,7 @@ density = self.profiles['rho'][times[0]][:,0]
 
 `Simulation.solo_profile` is a DataFrame containing Lagrangian profiles at one time, constructed via 
 `Simulation.get_profile_day(day=d)` where `day` is a time, in days, post shock breakout. Passing `-1` gives the 
-initial profile.
+initial profile. `solo_profile.time` returns the time of the profile.
 
 `Simulation.dat` contains integrated quantities as a function of time that are written by SNEC to `.dat` files. 
 

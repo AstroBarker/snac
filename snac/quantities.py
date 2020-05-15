@@ -9,6 +9,8 @@ from . import tools
 Module for calculating physical quantities
 """
 
+msun = const.M_sun.cgs.value
+
 def tau_sob(density, temp, X, t_exp):
     """
     Compute Sobolev optical depth profile for FeII 5169. See README for some details.
@@ -116,3 +118,56 @@ def total_energy(mass, radius, vel, rho, eps):
     grav = const.G.cgs.value * mass / radius
 
     return rho * ( vel**2 + eps - grav ) 
+
+def get_energy_boundary(e_tot):
+    """
+    Return the index where the total energy profile from total_energy()
+    swaps from negative to positive in the core.
+
+    Notice: may return garbage if solo_profile is before shock breakout as the 
+    envelope is not yet unbound.
+
+    Parameters:
+    -----------
+    e_tot : pd.DataFrame
+        self.solo_profile['e_tot']
+
+    Return:
+    -------
+    indx: corresponds to the first cell that is unbound.
+    """
+
+    return int( np.max( np.where( e_tot < 0.0 ) ) + 1 )
+
+def bound_mass(e_tot, mass):
+    """
+    Compute the amount of mass in the core still gravitationally 
+    bound at a given solo_profile. In solar masses.
+
+    Parameters:
+    -----------
+    e_tot : pd.DataFrame
+    mass  : pd.DataFrame
+        e.g., self.solo_profile['e_tot']
+    """
+
+    indx = get_energy_boundary(e_tot)
+
+    return mass[indx-1] / msun
+
+def ejecta_mass(e_tot, mass):
+    """
+    Compute the mass of the ejecta for a given solo_profile.
+    In solar masses.
+
+    Parameters:
+    -----------
+    e_tot : pd.DataFrame
+    mass  : pd.DataFrame
+        e.g., self.solo_profile['e_tot']
+    """
+
+    indx = get_energy_boundary(e_tot)
+    n = len(mass) - 1
+
+    return (mass[n] - mass[indx]) / msun
