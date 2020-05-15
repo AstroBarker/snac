@@ -196,7 +196,6 @@ def extract_profile(model, fields, verbose=True):
  
     df = {}
 
-    i = 0
     for key in fields:
         filepath = paths.profile_filepath(model=model, quantity=key)
         tools.printv(f'Extracting profile: {filepath}', verbose=verbose)
@@ -294,12 +293,10 @@ def get_params(model, var):
 
     fn = os.path.join(paths.output_path(model), 'parameters')
     with open(fn, "r") as f:
-        mylines = []
         for myline in f:
-            mylines.append(myline)
             # Find the line starting with mass_excised, split it at the '='
             if('masscut' in var and myline[0:13] == ' mass_excised' ):
-                mc = myline.split("= ")[1]
+                masscut = myline.split("= ")[1]
 
             # This is specific to how we name our profiles. s9.0_hydro.....
             if('zams' in var and myline[0:13] == ' profile_name' ):
@@ -309,7 +306,7 @@ def get_params(model, var):
             if ('zams' not in var): zams = '0.0'
             if ('masscut' not in var): masscut = '0.0'
 
-    return zams.strip("\n"), mc.strip("\n")
+    return zams.strip("\n"), masscut.strip("\n")
 
 def get_info(model, var):
     """
@@ -319,7 +316,6 @@ def get_info(model, var):
     fn = os.path.join(paths.output_path(model), 'info.dat')
 
     with open(fn, "r") as f:
-        mylines = []
         for myline in f:
             if( myline[0:5] == ' Mass'):
                 mass = myline.split("= ")[1]

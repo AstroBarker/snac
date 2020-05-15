@@ -22,20 +22,22 @@ Info
     ---------------
     dat: Integrated time-series quantities found in the `.dat` files.
     profile: Lagrangian profiles as extracted from `.xg` files.
+    solo_profile: Lagrangian profile taken at a particular day
     scalars: Scalar quantities, e.g., time of shock breakout. Dictionary.
 
 """
 
 # ------------------
 # TODO:
-# compute total energy, and related quantities for fallback
+# fallback, ejecta mass
 # get_scalars needs work for scalability
 # Add plotting functionality
+# ------------------
 
 import os
 import time
 import numpy as np
-import xarray as xr
+# import xarray as xr
 import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Slider
