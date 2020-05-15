@@ -21,7 +21,7 @@ Info
 
 # ------------------
 # TODO:
-# get conservation info
+# compute total energy, and related quantities for fallback
 # get_scalars needs work for scalability
 # Add plotting functionality
 
@@ -196,6 +196,7 @@ class Simulation:
         Parameters:
         -----------
         day : float
+            0 indicates shock breakout. Pass -1 for initial profile.
         """
 
         cols = self.config['profiles']['fields']
@@ -205,8 +206,10 @@ class Simulation:
 
         if (day == 0.0): # If day = 0, add some padding so we're just through shock breakout.
             t = times[np.max( np.where( times - self.scalars['t_sb'] <= day*86400. ) ) + 2]
-        else:
+        elif (day > 0.0):
             t = times[np.max( np.where( times - self.scalars['t_sb'] <= day*86400. ) ) + 0]
+        else:
+            t = times[0]
 
         df = pd.DataFrame()
         # All profiles in the dict contain mass as first column. Just grab from one
@@ -231,6 +234,19 @@ class Simulation:
                                 t_exp = 50.0 + self.scalars['t_sb']/86400)
         
         v = quantities.iron_velocity(self.solo_profile['vel'], tau_sob=tau)
-        print(v)
+        self.scalars['v_50'] = v
+
+    def compute_total_energy(self):
+        """
+        Compute specific total energy profile.
+        """
+        self.get_profile_day(day=0.0)
+        e_tot = quantities.total_energy(mass=self.solo_profile['mass'],
+                                        radius=self.solo_profile['radius'], 
+                                        vel=self.solo_profile['vel'], 
+                                        rho=self.solo_profile['rho'], 
+                                        eps=self.solo_profile['eps'])
+                                
+        self.solo_profile['e_tot'] = e_tot
 
 

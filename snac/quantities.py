@@ -99,3 +99,20 @@ def iron_velocity(vel, tau_sob):
 
     return v_FeII
         
+def total_energy(mass, radius, vel, rho, eps):
+    """
+    Compute the total energy profile at a given time.
+    rho * (vel**2 + eps - grav); grav = G * mass / radius
+
+    Parameters:
+    -----------
+    mass   : DataFrame
+    radius : DataFrame
+    vel    : DataFrame
+    rho    : DataFrame
+    eps    : DataFrame
+    """
+
+    grav = const.G.cgs.value * mass / radius
+
+    return rho * ( vel**2 + eps - grav ) 
