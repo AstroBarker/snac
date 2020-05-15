@@ -43,3 +43,16 @@ def printv(string, verbose, **kwargs):
     """
     if verbose:
         print(string, **kwargs)
+
+def ensure_sequence(x):
+    """
+    Ensure given object is in the form of a sequence.
+    If object is scalar, return as length-1 list.
+    parameters
+    ----------
+    x : 1D-array or scalar
+    """
+    if isinstance(x, (list, tuple, np.ndarray)):
+        return x
+    else:
+        return [x, ]

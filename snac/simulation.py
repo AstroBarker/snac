@@ -46,13 +46,16 @@ from matplotlib.widgets import Slider
 # from . import analysis
 from . import load
 from . import paths
-# from . import plot_tools
+from . import plot_tools
 from . import tools
 from . import quantities
 
 # TODO: 
 
 class Simulation:
+    """
+    Main class containing data for one simulation.
+    """
     def __init__(self, model, config='snec',
                  output_dir='Data', verbose=True, load_all=True,
                  reload=False, save=True, load_profiles=True):
@@ -310,8 +313,251 @@ class Simulation:
         )
 
 
+    # =======================================================
+    #                      Plotting
+    # =======================================================
+    def plot_profiles(self, t, y_var_list, x_var='mass', y_scale=None, x_scale=None,
+                      max_cols=2, sub_figsize=(6, 5), legend=False):
+        """Plot one or more profile variables
+        parameters
+        ----------
+        t : int
+            timestamp to plot
+        y_var_list : str or [str]
+            variable(s) to plot on y-axis (from Simulation.profile)
+        x_var : str
+            variable to plot on x-axis
+        y_scale : {'log', 'linear'}
+        x_scale : {'log', 'linear'}
+        legend : bool
+        max_cols : bool
+        sub_figsize : tuple
+        """
+        
+        y_var_list = tools.ensure_sequence(y_var_list)
+        n_var = len(y_var_list)
+        fig, ax = plot_tools.setup_subplots(n_var, max_cols=max_cols,
+                                            sub_figsize=sub_figsize, squeeze=False)
+
+        for i, y_var in enumerate(y_var_list):
+            row = int(np.floor(i / max_cols))
+            col = i % max_cols
+
+            self.plot_profile(t, y_var=y_var, x_var=x_var, y_scale=y_scale,
+                              x_scale=x_scale, ax=ax[row, col],
+                              legend=legend if i == 0 else False)
+        return fig
+
+    def plot_profile(self, t, y_var, x_var='mass', y_scale=None, x_scale=None,
+                     ax=None, legend=False, title=True,
+                     ylims=None, xlims=None, figsize=(8, 6), label=None,
+                     linestyle='-', marker=''):
+        """Plot given profile variable
+        parameters
+        ----------
+        t : float
+            time
+        y_var : str
+            variable to plot on y-axis (from Simulation.profile)
+        x_var : str
+            variable to plot on x-axis
+        y_scale : {'log', 'linear'}
+        x_scale : {'log', 'linear'}
+        ax : Axes
+        legend : bool
+        title : bool
+        ylims : [min, max]
+        xlims : [min, max]
+        figsize : [width, height]
+        label : str
+        linestyle : str
+        marker : str
+        """
+
+        fig, ax = self._setup_fig_ax(ax=ax, figsize=figsize)
+        self._set_ax_title(ax, t=t, title=title)
+        self._set_ax_scales(ax, y_var, x_var=x_var, y_scale=y_scale, x_scale=x_scale)
+        self._set_ax_labels(ax, x_var=x_var, y_var=y_var)
+
+        x = self.profiles[y_var][t][:,0]
+        y = self.profiles[y_var][t][:,1]
+
+        ax.plot(x, y, ls=linestyle, marker=marker, label=label)
+
+        if legend:
+            ax.legend()
+
+        return fig
+
+    def plot_slider(self, y_var, x_var='mass', y_scale=None, x_scale=None,
+                figsize=(8, 6), title=True, xlims=None, ylims=None, legend=True,
+                linestyle='-', marker=''):
+                
+        """
+        Plot interactive slider of profile for given variable
+
+        parameters
+        ----------
+        y_var : str
+        x_var : str
+        y_scale : {'log', 'linear'}
+        x_scale : {'log', 'linear'}
+        figsize : [width, height]
+        title : bool
+        xlims : [min, max]
+        ylims : [min, max]
+        legend : bool
+        linestyle : str
+        marker : str
+        """
+        # TODO: Needs work setting y axis scales.
+
+        fig, profile_ax, slider_ax = self._setup_slider_fig(figsize=figsize)
+        t_max, t_min = self._get_slider_bounds()
+
+        slider = Slider(slider_ax, 'time', t_min, t_max, valinit=t_max, valstep=1)
+
+        self.plot_profile(t_max, y_var=y_var, x_var=x_var, y_scale=y_scale,
+                            x_scale=x_scale, ax=profile_ax, legend=legend,
+                            title=title, ylims=ylims, xlims=xlims, figsize=figsize,
+                            linestyle=linestyle, marker=marker)
+
+        def update(t):
+            self.get_profile_day(day = t / 86400.)
+            profile = self.solo_profile
+            y_profile = profile[y_var]
+
+            profile_ax.lines[0].set_ydata(y_profile)
+            profile_ax.lines[0].set_xdata(profile[x_var])
+            self._set_ax_title(profile_ax, t=t, title=title)
+
+            fig.canvas.draw_idle()
+
+        slider.on_changed(update)
+        return fig, slider
+
+
+    def plot_dat(self, y_var, y_scale='log', display=True, ax=None, figsize=(8, 6),
+                linestyle='-', marker=''):
+        """Plot quantity from dat file
+        parameters
+        ----------
+        y_var : str
+        y_scale : {'log', 'linear'}
+        figsize : [width, height]
+        display : bool
+        ax : Axes
+        linestyle : str
+        marker : str
+        """
+        fig, ax = self._setup_fig_ax(ax=ax, figsize=figsize)
+        ax.plot(self.dat['time'], self.dat[y_var], linestyle=linestyle, marker=marker)
+
+        ax.set_yscale(y_scale)
+        self._set_ax_labels(ax, x_var='$t$ (s)', y_var=y_var)
+
+        if display:
+            plt.show(block=False)
 
 
 
+    # =======================================================
+    #                      Plotting Tools
+    # =======================================================
+    def get_label(self, key):
+        """Return formatted string for plot label
+        parameters
+        ----------
+        key : str
+            parameter key, e.g. 'r', 'temp', 'dens'
+        """
+        return self.config['plotting']['labels'].get(key, key)
+ 
+    def _set_ax_scales(self, ax, y_var, x_var, y_scale, x_scale):
+        """Set axis scales (linear, log)
+        parameters
+        ----------
+        ax : Axes
+        y_var : str
+        x_var : str
+        y_scale : {'log', 'linear'}
+        x_scale : {'log', 'linear'}
+        """
+        if x_scale is None:
+            x_scale = self.config['plotting']['ax_scales'].get(x_var, 'log')
+        if y_scale is None:
+            y_scale = self.config['plotting']['ax_scales'].get(y_var, 'log')
 
+        ax.set_xscale(x_scale)
+        ax.set_yscale(y_scale)
+
+    def _set_ax_title(self, ax, t, title):
+        """Set axis title
+        parameters
+        ----------
+        ax : Axes
+        chk : int
+        title : bool
+        """
+        # TODO: account for different zero points/starting times
+        if title:
+            ax.set_title(f't = {t:.3f} s')
+
+    def _set_ax_labels(self, ax, x_var, y_var):
+        """Set axis labels
+        parameters
+        ----------
+        ax : Axes
+        x_var : str
+        y_var : str
+        """
+        ax.set_xlabel(self.get_label(x_var))
+        ax.set_ylabel(self.get_label(y_var))
+
+    def _set_ax_legend(self, ax, legend, loc=None):
+        """Set axis labels
+        parameters
+        ----------
+        ax : Axes
+        legend : bool
+        """
+        c = self.config['plotting']
+        if legend:
+            ax.legend(loc=loc)
+
+    def _setup_fig_ax(self, ax, figsize):
+        """Setup fig, ax, checking if ax already provided
+        parameters
+        ----------
+        ax : Axes
+        figsize : [width, height]
+        """
+        c = self.config['plotting']  # TODO: default settings from config
+        fig = None
+
+        if ax is None:
+            fig, ax = plt.subplots(figsize=figsize)
+
+        return fig, ax
+
+    def _setup_slider_fig(self, figsize):
+        """Setup fig, ax for slider
+        parameters
+        ----------
+        figsize : [width, height]
+        """
+        c = self.config['plotting']  # TODO: default settings from config
+        fig = plt.figure(figsize=figsize)
+        profile_ax = fig.add_axes([0.1, 0.2, 0.8, 0.65])
+        slider_ax = fig.add_axes([0.1, 0.05, 0.8, 0.05])
+
+        return fig, profile_ax, slider_ax
+        
+    def _get_slider_bounds(self):
+        """
+        Return t_max, t_min
+        """
+        t_max = [*self.profiles['rho']][-1]
+        t_min = 0.0
+        return t_max, t_min
 

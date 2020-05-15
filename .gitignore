@@ -4,4 +4,6 @@ __pycache__
 scratch/
 .vscode/
 testing.py
+testing.ipynb
+*checkpoint.ipynb
 temp/
