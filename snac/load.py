@@ -149,7 +149,6 @@ def get_profiles(model, fields, reload=False, save=True, verbose=True):
     parameters
     ----------
     model   : str
-        dictionary with column names and indexes (Note: 1-indexed)
     fields  : []    
     reload  : bool
     save    : bool
@@ -235,6 +234,7 @@ def xg_to_dict(fn):
     fn : str
     """
     dd = {}
+
     with open(fn, 'r') as rf:
         for line in rf:
             cols = line.split()
@@ -250,6 +250,76 @@ def xg_to_dict(fn):
                 dd[time] = np.array(dd[time])
 
     return dd
+
+# =======================================================================
+#                      Scalars
+# =======================================================================
+
+def get_scalars(model, var):
+    """
+    Get various SNEC scalar outputs. Needs work for scalability.
+
+    Parameters:
+    -----------
+    model : str
+    var : []
+    """
+
+    if ('M_preSN' in var or 't_sb' in var):
+        m_preSN, tsb = get_info(model, var)
+    if ('zams' in var or 'masscut' in var):
+        zams, masscut = get_params(model, var)
+     
+    df = {}
+    if 'masscut' in var: df['masscut'] = float(masscut)
+    if 't_sb' in var: df['t_sb'] = float(tsb)
+    if 'M_preSN' in var: df['M_preSN'] = float(m_preSN)
+    if 'zams' in var: df['zams'] = float(zams)
+
+    return df
+
+def get_params(model, var):
+    """ Get information from SNEC parameters file. """
+    # TODO: add options to config file to specify what to get here.
+
+    fn = os.path.join(paths.output_path(model), 'parameters')
+    with open(fn, "r") as f:
+        mylines = []
+        for myline in f:
+            mylines.append(myline)
+            # Find the line starting with mass_excised, split it at the '='
+            if('masscut' in var and myline[0:13] == ' mass_excised' ):
+                mc = myline.split("= ")[1]
+
+            # This is specific to how we name our profiles. s9.0_hydro.....
+            if('zams' in var and myline[0:13] == ' profile_name' ):
+                profile = myline.split("= ")[1]
+                zams = (profile.split("_")[0]).split("s")[2]
+
+            if ('zams' not in var): zams = '0.0'
+            if ('masscut' not in var): masscut = '0.0'
+
+    return zams.strip("\n"), mc.strip("\n")
+
+def get_info(model, var):
+    """
+    Extract information from info.dat
+    """
+
+    fn = os.path.join(paths.output_path(model), 'info.dat')
+
+    with open(fn, "r") as f:
+        mylines = []
+        for myline in f:
+            if( myline[0:5] == ' Mass'):
+                mass = myline.split("= ")[1]
+
+            if( myline[0:17] == ' Time of breakout'):
+                tsb = myline.split("= ")[1]
+        tsb = tsb.split(" ")[3]
+        mass = mass.split(" ")[3]
+
+    return mass, tsb
 
 # ===============================================================
 #              Misc. file things

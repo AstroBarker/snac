@@ -15,8 +15,14 @@ Info
     ---------------
     dat: Integrated time-series quantities found in the `.dat` files.
     profile: Lagrangian profiles as extracted from `.xg` files.
+    scalars: Scalar quantities, e.g., time of shock breakout. Dictionary.
 
 """
+
+# ------------------
+# TODO:
+# get conservation info
+# get_scalars needs work for scalability
 
 import os
 import time
@@ -72,11 +78,12 @@ class Simulation:
         self.profiles = xr.Dataset()     # radial profile data for each timestep
         self.scalars = None              # scalar quantities: time of shock breakout, plateau duration...
 
-        # self.get_scalars()
         self.load_config(config=config)
 
         if load_all:
             self.load_all(reload=reload, save=save, load_profiles=load_profiles)
+        
+        self.get_scalars()
 
         t1 = time.time()
         self.printv(f'Model load time: {t1-t0:.3f} s')
@@ -151,3 +158,11 @@ class Simulation:
                                     model=self.model,
                                     fields=config['fields'],
                                     reload=reload, save=save, verbose=self.verbose)
+                            
+    def get_scalars(self):
+        """
+        Compute all necessary SNEC scalar quantities
+        """
+
+        config = self.config['scalars']
+        self.scalars = load.get_scalars(model=self.model, var=config['fields'])
