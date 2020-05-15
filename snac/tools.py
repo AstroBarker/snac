@@ -2,9 +2,21 @@
 
 import numpy as np
 
+def matprint(mat, fmt="g"):
+    """
+    Pretty print a matrix.
+    """
+
+    col_maxes = [max([len(("{:"+fmt+"}").format(x)) for x in col]) for col in mat.T]
+    for x in mat:
+        for i, y in enumerate(x):
+            print(("{:"+str(col_maxes[i])+fmt+"}").format(y), end="  ")
+        print("")
+
 def str_to_bool(string, true_options=("yes", "y", "true"),
                 false_options=("no",  "n", "false")):
-    """Convert string to boolean, e.g. for parsing shell input
+    """
+    Convert string to bool
     parameters
     ----------
     string : str or bool
@@ -22,7 +34,8 @@ def str_to_bool(string, true_options=("yes", "y", "true"),
         raise Exception(f'Undefined string for boolean conversion: {string}')
 
 def printv(string, verbose, **kwargs):
-    """Print string if verbose is True
+    """
+    Print string if verbose is True
     parameters
     ----------
     string : str
@@ -30,14 +43,3 @@ def printv(string, verbose, **kwargs):
     """
     if verbose:
         print(string, **kwargs)
-
-def matprint(mat, fmt="g"):
-    """
-    Pretty print a matrix.
-    """
-
-    col_maxes = [max([len(("{:"+fmt+"}").format(x)) for x in col]) for col in mat.T]
-    for x in mat:
-        for i, y in enumerate(x):
-            print(("{:"+str(col_maxes[i])+fmt+"}").format(y), end="  ")
-        print("")

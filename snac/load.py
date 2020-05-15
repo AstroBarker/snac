@@ -54,13 +54,13 @@ def load_config(name=None, verbose=True):
 # =======================================================================
 #                      Dat files
 # =======================================================================
-def get_dat(model, cols_dict, reload=False, save=True, verbose=True):
+def get_dat(model, cols, reload=False, save=True, verbose=True):
     """Get set of integrated quantities, as contained in .dat files
     Returns : pandas.DataFrame
     parameters
     ----------
     model : str
-    cols_dict : {}
+    cols : {}
         dictionary with column names and indexes (Note: 1-indexed)
     reload : bool
     save : bool
@@ -77,20 +77,20 @@ def get_dat(model, cols_dict, reload=False, save=True, verbose=True):
 
     # fall back on loading raw .dat
     if dat_table is None:
-        dat_table = extract_dat(model, cols_dict=cols_dict, verbose=verbose)
+        dat_table = extract_dat(model, cols=cols, verbose=verbose)
         if save:
             save_dat_cache(dat_table, model=model, 
                            verbose=verbose)
 
     return dat_table
 
-def extract_dat(model, cols_dict, verbose=True):
+def extract_dat(model, cols, verbose=True):
     """Extract data from .dat file
-    Returns : dict of 1D quantities
+    Returns : dataFrame of 1D quantities
     parameters
     ----------
     model : str
-    cols_dict : []
+    cols : []
         list with column names
     run: str
     verbose : bool
@@ -99,7 +99,7 @@ def extract_dat(model, cols_dict, verbose=True):
     df = pd.DataFrame()
 
     i = 0
-    for key in cols_dict:
+    for key in cols:
         filepath = paths.dat_filepath(model=model, quantity=key)
         tools.printv(f'Extracting dat: {filepath}', verbose=verbose)
 
@@ -115,7 +115,7 @@ def extract_dat(model, cols_dict, verbose=True):
             df[key] = df_temp[key]
         i += 1
 
-    if ('conservation' in cols_dict): # drop last row: no energy data written in last timestep.
+    if ('conservation' in cols): # drop last row: no energy data written in last timestep.
         # df = df.drop(df.tail(1).index,inplace=True)
         return df[:-1]
     else:
@@ -188,8 +188,8 @@ def extract_profile(model, fields, verbose=True):
     parameters
     ----------
     model : str
-    cols_dict : {}
-        dictionary with column names and indexes (Note: 1-indexed)
+    fields : []
+        dictionary with column names
     run: str
     verbose : bool
     """

@@ -1,5 +1,12 @@
+# -------------------------------
+#   ____  _   _    _    ____ 
+#  / ___|| \ | |  / \  / ___|
+#  \___ \|  \| | / _ \| |    
+#   ___) | |\  |/ ___ \ |___ 
+#  |____/|_| \_/_/   \_\____|
+# -------------------------------
 """
-Main snac class for the Simulation object.
+Main SNAC class for the Simulation object.
 
 A Simulation instance represents a single set of SNEC run.
 It can load model data files, manipulate/extract that data,
@@ -47,7 +54,8 @@ class Simulation:
     def __init__(self, model, config='snec',
                  output_dir='Data', verbose=True, load_all=True,
                  reload=False, save=True, load_profiles=True):
-        """Object representing a 1D flash simulation
+        """
+        Object representing a 1D flash simulation
         parameters
         ----------
         model : str
@@ -57,11 +65,11 @@ class Simulation:
         output_dir : str
             name of subdirectory containing model output files
         load_all : bool
-            immediately load all model data (chk profiles, dat)
+            load all model data (profiles, dat)
         reload : bool
-            force reload model data from raw files (don't load from temp/)
+            load from raw data, not saved pickle files (slow)
         save : bool
-            save extracted model data to temporary files (for faster loading)
+            save extracted data to pickle files (for faster loading)
         verbose : bool
             print information to terminal
         load_profiles : bool
@@ -92,7 +100,8 @@ class Simulation:
     #                      Setup/init
     # =======================================================
     def printv(self, string, verbose=None, **kwargs):
-        """Verbose-aware print
+        """
+        Verbose-aware print
         parameters
         ----------
         string : str
@@ -108,7 +117,8 @@ class Simulation:
             print(string, **kwargs)
 
     def load_config(self, config='snec'):
-        """Load config parameters from file
+        """
+        Load config parameters from file
         parameters
         ----------
         config : str
@@ -116,7 +126,8 @@ class Simulation:
         self.config = load.load_config(name=config, verbose=self.verbose)
 
     def load_all(self, reload=False, save=True, load_profiles=False):
-        """Load all model data
+        """
+        Load all model data
         parameters
         ----------
         reload : bool
@@ -133,7 +144,8 @@ class Simulation:
     #                   Loading Data
     # =======================================================
     def load_dat(self, reload=False, save=True):
-        """Load .dat file
+        """
+        Load .dat file
         parameters
         ----------
         reload : bool
@@ -141,11 +153,12 @@ class Simulation:
         """
         self.dat = load.get_dat(
                         model=self.model,
-                        cols_dict=self.config['dat_quantities']['fields'], reload=reload,
+                        cols=self.config['dat_quantities']['fields'], reload=reload,
                         save=save, verbose=self.verbose)
 
     def load_all_profiles(self, reload=False, save=True):
-            """Load profiles
+            """
+            Load profiles
 
             parameters
             ----------
