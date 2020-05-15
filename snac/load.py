@@ -69,7 +69,7 @@ def get_dat(model, cols_dict, reload=False, save=True, verbose=True):
     dat_table = None
 
     # attempt to load temp file
-    if reload:
+    if not reload:
         try:
             dat_table = load_dat_cache(model=model, verbose=verbose)
         except FileNotFoundError:
@@ -103,13 +103,23 @@ def extract_dat(model, cols_dict, verbose=True):
         filepath = paths.dat_filepath(model=model, quantity=key)
         tools.printv(f'Extracting dat: {filepath}', verbose=verbose)
 
-        df_temp = pd.read_fwf(filepath, header=None, names=['time', key])
+        if (key == 'conservation'):
+            df_temp1 = pd.read_fwf(filepath, header=None, \
+                names=['time', 'Egrav', 'Eint', 'Ekin', 'Etot', 'EtotmInt'])
+            df_temp1 = df_temp1.drop(columns='EtotmInt')
+            for col in df_temp1:
+                df[col] = df_temp1[col]
+        else:        
+            df_temp = pd.read_fwf(filepath, header=None, names=['time', key])
 
-        if (i == 0):
-            df['time'] = df_temp['time']
-        df[key] = df_temp[key]
-    
-    return df
+            df[key] = df_temp[key]
+        i += 1
+
+    if ('conservation' in cols_dict): # drop last row: no energy data written in last timestep.
+        # df = df.drop(df.tail(1).index,inplace=True)
+        return df[:-1]
+    else:
+        return df
 
 def save_dat_cache(dat, model, verbose=True):
     """Save pre-extracted .dat quantities, for faster loading
@@ -157,7 +167,7 @@ def get_profiles(model, fields, reload=False, save=True, verbose=True):
     dat_table = None
 
     # attempt to load temp file
-    if reload:
+    if not reload:
         try:
             dat_table = load_profile_cache(model=model, verbose=verbose)
         except FileNotFoundError:

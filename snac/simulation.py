@@ -23,6 +23,7 @@ Info
 # TODO:
 # get conservation info
 # get_scalars needs work for scalability
+# Add plotting functionality
 
 import os
 import time
@@ -45,7 +46,7 @@ from . import quantities
 class Simulation:
     def __init__(self, model, config='snec',
                  output_dir='Data', verbose=True, load_all=True,
-                 reload=False, save=True, load_profiles=False):
+                 reload=False, save=True, load_profiles=True):
         """Object representing a 1D flash simulation
         parameters
         ----------
@@ -73,17 +74,16 @@ class Simulation:
         self.model_path = paths.model_path(model=model)
         self.output_path = os.path.join(self.model_path, output_dir)
 
-        self.config = None               # model-specific configuration; see load_config()
+        self.config = None               # model-specific configuration; see load_config(). Dicti
         self.dat = None                  # integrated data from .dat; see load_dat()
-        self.profiles = xr.Dataset()     # radial profile data for each timestep
-        self.scalars = None              # scalar quantities: time of shock breakout, plateau duration...
+        self.profiles = None             # mass profile data for each timestep
+        self.solo_profile = None         # profile at one timestep
+        self.scalars = None              # scalar quantities: time of shock breakout..
 
         self.load_config(config=config)
 
         if load_all:
             self.load_all(reload=reload, save=save, load_profiles=load_profiles)
-        
-        self.get_scalars()
 
         t1 = time.time()
         self.printv(f'Model load time: {t1-t0:.3f} s')
@@ -123,11 +123,11 @@ class Simulation:
         save : bool
         """
         self.load_dat(reload=reload, save=save)
+        self.get_scalars()
+        self.dat['time'] -= self.scalars['t_sb'] # adjust to shock breakout. 
         if load_profiles:
             self.load_all_profiles(reload=reload, save=save)
-
-
-
+            self.get_profile_day()  
 
     # =======================================================
     #                   Loading Data
@@ -166,3 +166,71 @@ class Simulation:
 
         config = self.config['scalars']
         self.scalars = load.get_scalars(model=self.model, var=config['fields'])
+
+
+    # =======================================================
+    #                   Manipulation
+    # =======================================================
+
+    def get_dat_day(self, day=50.0):
+        """
+        Isolate dat quantities at a specific day post shock breakout, 50 by default
+
+        Parameters:
+        day : float
+        """       
+        
+        time = self.dat['time'] 
+        ind = np.max( np.where(time <= day * 86400.) )
+
+        for col in self.dat:
+            if col == 'time': continue
+
+            label = col + '_50'
+            self.scalars[label] = self.dat[col][ind]
+
+    def get_profile_day(self, day=0.0):
+        """
+        Isolate mass profiles at a specific day, move from dict to DataFrame.
+
+        Parameters:
+        -----------
+        day : float
+        """
+
+        cols = self.config['profiles']['fields']
+
+        times = np.array([*self.profiles['rho']]) #returns dictionary keys - the times.
+        # This isolates the key for the data just before [day] days.
+
+        if (day == 0.0): # If day = 0, add some padding so we're just through shock breakout.
+            t = times[np.max( np.where( times - self.scalars['t_sb'] <= day*86400. ) ) + 2]
+        else:
+            t = times[np.max( np.where( times - self.scalars['t_sb'] <= day*86400. ) ) + 0]
+
+        df = pd.DataFrame()
+        # All profiles in the dict contain mass as first column. Just grab from one
+        df['mass'] = self.profiles['rho'][t][:,0] 
+        for col in cols:
+            df[col] = self.profiles[col][t][:,1]
+
+        self.solo_profile = df
+
+    # =======================================================
+    #                   Quantities
+    # =======================================================
+
+    def vel_FeII(self):
+        """
+        Compute FeII 5169 line velocity from Sobolev optical depth = 1
+        """
+        self.get_profile_day(day=50.0)
+        tau = quantities.tau_sob(density = self.solo_profile['rho'], 
+                                temp=self.solo_profile['temp'], 
+                                X=self.solo_profile['H_1'], 
+                                t_exp = 50.0 + self.scalars['t_sb']/86400)
+        
+        v = quantities.iron_velocity(self.solo_profile['vel'], tau_sob=tau)
+        print(v)
+
+
