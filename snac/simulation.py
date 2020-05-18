@@ -50,8 +50,6 @@ from . import plot_tools
 from . import tools
 from . import quantities
 
-# TODO: 
-
 class Simulation:
     """
     Main class containing data for one simulation.
@@ -87,7 +85,7 @@ class Simulation:
         self.model_path = paths.model_path(model=model)
         self.output_path = os.path.join(self.model_path, output_dir)
 
-        self.config = None               # model-specific configuration; see load_config(). Dicti
+        self.config = None               # model-specific configuration; see load_config(). Dict
         self.dat = None                  # integrated data from .dat; see load_dat()
         self.profiles = None             # mass profile data for each timestep
         self.solo_profile = None         # profile at one timestep

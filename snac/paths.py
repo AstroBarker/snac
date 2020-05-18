@@ -34,6 +34,20 @@ def config_filepath(name='snec'):
 
     return os.path.join(snac_path, 'snac', 'config', f'{name}.ini')
 
+def data_path():
+    """
+    return path to $SNAC_DIR/snac/data
+    """
+
+    try:
+        snac_path = os.environ['SNAC_DIR']
+    except KeyError:
+        raise EnvironmentError('Environment variable SNAC_DIR not set. '
+                               'Set path to code directory, e.g., '
+                               "'export SNAC_DIR=${HOME}/path/to/SNAC'")
+
+    return os.path.join(snac_path, 'snac', 'data')
+
 
 # ===============================================================
 #                      Models

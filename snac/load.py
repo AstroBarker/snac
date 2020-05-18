@@ -1,4 +1,5 @@
-""" Functions for loading SNEC data 
+""" 
+Functions for loading SNEC data 
 
 Info:
 

@@ -1,9 +1,11 @@
 import numpy as np
 from astropy import units as u
 from astropy import constants as const
+import os
 
 # snac
 from . import tools
+from . import paths
 
 """
 Module for calculating physical quantities
@@ -34,7 +36,7 @@ def tau_sob(density, temp, X, t_exp):
     t_exp *= 86400
 
     # fractional ionization table
-    fn = "./data/FeII_5169_eta.dat"
+    fn = os.path.join(paths.data_path(), 'FeII_5169_eta.dat')
     rho, Temp, eta = np.loadtxt(fn, unpack=True)
     rho = np.flip(rho)
     Temp = np.flip(Temp)
