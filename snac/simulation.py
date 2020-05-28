@@ -197,7 +197,10 @@ class Simulation:
         """       
         
         time = self.dat['time'] 
-        ind = np.max( np.where(time <= day * 86400.) )
+        if (day >= 0.0):
+            ind = np.max( np.where(time <= day * 86400.) )
+        else: 
+            ind = 0
 
         for col in self.dat:
             if col == 'time': continue
@@ -205,7 +208,7 @@ class Simulation:
             label = col + '_50'
             self.scalars[label] = self.dat[col][ind]
 
-    def get_profile_day(self, day=0.0):
+    def get_profile_day(self, day=0.0, post_breakout=True):
         """
         Isolate mass profiles at a specific day, move from dict to DataFrame.
 
@@ -213,6 +216,8 @@ class Simulation:
         -----------
         day : float
             0 indicates shock breakout. Pass -1 for initial profile.
+        post_breakout : bool
+            if True, day is assumed to be with respend to shock breakout.
         """
 
         cols = self.config['profiles']['fields']
@@ -220,12 +225,18 @@ class Simulation:
         times = np.array([*self.profiles['rho']]) #returns dictionary keys - the times.
         # This isolates the key for the data just before [day] days.
 
-        if (day == 0.0): # If day = 0, add some padding so we're just through shock breakout.
-            t = times[np.max( np.where( times - self.scalars['t_sb'] <= day*86400. ) ) + 2]
-        elif (day > 0.0):
-            t = times[np.max( np.where( times - self.scalars['t_sb'] <= day*86400. ) ) + 0]
+        if post_breakout:
+
+            if (day == 0.0): # If day = 0, add some padding so we're just through shock breakout.
+                t = times[np.max( np.where( times - self.scalars['t_sb'] <= day*86400. ) ) + 2]
+            elif (day == -1):
+                t = times[0]
+            else:
+                t = times[np.max( np.where( times - self.scalars['t_sb'] <= day*86400. ) ) + 0]
+
         else:
-            t = times[0]
+            t = times[np.max( np.where( times <= day*86400. ) ) + 0]
+
 
         df = pd.DataFrame()
         # All profiles in the dict contain mass as first column. Just grab from one
@@ -421,7 +432,7 @@ class Simulation:
                             linestyle=linestyle, marker=marker)
 
         def update(t):
-            self.get_profile_day(day = t / 86400.)
+            self.get_profile_day(day = t / 86400., post_breakout=False)
             profile = self.solo_profile
             y_profile = profile[y_var]
 
@@ -456,6 +467,8 @@ class Simulation:
 
         if display:
             plt.show(block=False)
+
+        return fig, ax
 
 
 
@@ -556,6 +569,6 @@ class Simulation:
         Return t_max, t_min
         """
         t_max = [*self.profiles['rho']][-1]
-        t_min = 0.0
+        t_min = 0.0 #- self.scalars['t_sb']
         return t_max, t_min
 
