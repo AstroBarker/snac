@@ -205,7 +205,7 @@ class Simulation:
         for col in self.dat:
             if col == 'time': continue
 
-            label = col + '_50'
+            label = col + '_solo'
             self.scalars[label] = self.dat[col][ind]
 
     def get_profile_day(self, day=0.0, post_breakout=True):
@@ -228,7 +228,7 @@ class Simulation:
         if post_breakout:
 
             if (day == 0.0): # If day = 0, add some padding so we're just through shock breakout.
-                t = times[np.max( np.where( times - self.scalars['t_sb'] <= day*86400. ) ) + 2]
+                t = times[np.max( np.where( times - self.scalars['t_sb'] <= day*86400. ) ) + 1]
             elif (day == -1):
                 t = times[0]
             else:
@@ -256,7 +256,16 @@ class Simulation:
     def vel_FeII(self, day=50.0):
         """
         Compute FeII 5169 line velocity from Sobolev optical depth = 1
+
+        NOTE: Not supported for default version of SNEC. I've added an additional 
+        profile to output the hydrogen profiles. These are used to approximate the 
+        iron 56 number density - Fe56 mass fractions are preffered, but not necessarily available
+        in th eprogenitor set I was using.
         """
+
+        if "H_frac" not in self.config:
+            raise ValueError(f'mass fraction profile not supplied.')
+
         if (self.solo_profile.day != day):
             self.get_profile_day(day=day)
 
@@ -277,6 +286,10 @@ class Simulation:
         -----------
         day : float
         """
+
+        if self.solo_profile is None:
+            self.get_profile_day(day=day)
+
         if (self.solo_profile.day != day):
             self.get_profile_day(day=day)
 
@@ -297,6 +310,12 @@ class Simulation:
         day : float
         """
 
+        if "e_tot" not in self.solo_profile:
+            self.compute_total_energy(day = day)
+
+        if self.solo_profile is None:
+            self.get_profile_day(day=day)
+
         if (self.solo_profile.day != day):
             self.get_profile_day(day=day)
 
@@ -312,6 +331,9 @@ class Simulation:
         -----------
         day : float
         """
+
+        if self.solo_profile is None:
+            self.get_profile_day(day=day)
 
         if (self.solo_profile.day != day):
             self.get_profile_day(day=day)

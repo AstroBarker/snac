@@ -139,7 +139,10 @@ def get_energy_boundary(e_tot):
     indx: corresponds to the first cell that is unbound.
     """
 
-    return int( np.max( np.where( e_tot < 0.0 ) ) + 1 )
+    try:
+        return int( np.max( np.where( e_tot < 0.0 ) ) + 1 )
+    except:
+        return None
 
 def bound_mass(e_tot, mass):
     """
@@ -155,7 +158,10 @@ def bound_mass(e_tot, mass):
 
     indx = get_energy_boundary(e_tot)
 
-    return mass[indx-1] / msun
+    if indx is None:
+        return 0.0
+    else:
+        return mass[indx-1] / msun
 
 def ejecta_mass(e_tot, mass):
     """

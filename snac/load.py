@@ -284,7 +284,7 @@ def get_scalars(model, var):
     if 'masscut' in var: df['masscut'] = float(masscut)
     if 't_sb' in var: df['t_sb'] = float(tsb)
     if 'M_preSN' in var: df['M_preSN'] = float(m_preSN)
-    if 'zams' in var: df['zams'] = float(zams)
+    if 'zams' in var: df['zams'] = float(zams) # Specific to a profile naming scheme. 
 
     return df
 
@@ -296,7 +296,7 @@ def get_params(model, var):
     with open(fn, "r") as f:
         for myline in f:
             # Find the line starting with mass_excised, split it at the '='
-            if('masscut' in var and myline[0:13] == ' mass_excised' ):
+            if('masscut' in var and "mass_excised" in myline ):
                 masscut = myline.split("= ")[1]
 
             # This is specific to how we name our profiles. s9.0_hydro.....
@@ -307,7 +307,7 @@ def get_params(model, var):
             if ('zams' not in var): zams = '0.0'
             if ('masscut' not in var): masscut = '0.0'
 
-    return zams.strip("\n"), masscut.strip("\n")
+    return zams.strip("\n"), masscut.strip("\n").split(" ")[0]
 
 def get_info(model, var):
     """
