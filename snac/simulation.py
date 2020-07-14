@@ -263,7 +263,7 @@ class Simulation:
         in th eprogenitor set I was using.
         """
 
-        if "H_frac" not in self.config:
+        if "H_frac" not in self.config['profiles']['fields']:
             raise ValueError(f'mass fraction profile not supplied.')
 
         if (self.solo_profile.day != day):
@@ -271,7 +271,7 @@ class Simulation:
 
         tau = quantities.tau_sob(density = self.solo_profile['rho'], 
                                 temp=self.solo_profile['temp'], 
-                                X=self.solo_profile['H_1'], 
+                                X=self.solo_profile['H_frac'], 
                                 t_exp = 50.0 + self.scalars['t_sb']/86400)
         
         self.scalars['v_Fe'] = quantities.iron_velocity(
