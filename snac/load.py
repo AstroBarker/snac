@@ -276,7 +276,9 @@ def get_scalars(model, var):
     """
 
     if ('M_preSN' in var or 't_sb' in var):
-        m_preSN, tsb = get_info(model, var)
+        E_init, E_bomb, m_preSN, tsb = get_info(model, var)
+    else:
+        E_init, E_bomb, _, _ = get_info(model, var)
     if ('zams' in var or 'masscut' in var):
         zams, masscut = get_params(model, var)
      
@@ -285,6 +287,8 @@ def get_scalars(model, var):
     if 't_sb' in var: df['t_sb'] = float(tsb)
     if 'M_preSN' in var: df['M_preSN'] = float(m_preSN)
     if 'zams' in var: df['zams'] = float(zams) # Specific to a profile naming scheme. 
+    df["E_init"] = E_init
+    df["E_bomb"] = E_bomb
 
     return df
 
@@ -320,13 +324,16 @@ def get_info(model, var):
         for myline in f:
             if( myline[0:5] == ' Mass'):
                 mass = myline.split("= ")[1]
-
             if( myline[0:17] == ' Time of breakout'):
                 tsb = myline.split("= ")[1]
+            if("Total energy of the model" in myline):
+                E_init = float(myline.split("= ")[1].split("  ergs")[0])
+            if("Total energy of the bomb" in myline):
+                E_bomb = float(myline.split("= ")[1].split("  ergs")[0])
         tsb = tsb.split(" ")[3]
         mass = mass.split(" ")[3]
 
-    return mass, tsb
+    return float(E_init), float(E_bomb), mass, tsb
 
 # ===============================================================
 #              Misc. file things
