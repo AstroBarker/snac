@@ -85,16 +85,20 @@ class Simulation:
         self.model_path = paths.model_path(model=model)
         self.output_path = os.path.join(self.model_path, output_dir)
 
-        self.config = None               # model-specific configuration; see load_config(). Dict
-        self.dat = None                  # integrated data from .dat; see load_dat()
-        self.profiles = None             # mass profile data for each timestep
-        self.solo_profile = None         # profile at one timestep
-        self.scalars = None              # scalar quantities: time of shock breakout..
+        self.config       = None  # model-specific configuration; see load_config(). Dict
+        self.dat          = None  # integrated data from .dat; see load_dat()
+        self.profiles     = None  # mass profile data for each timestep
+        self.solo_profile = None  # profile at one timestep
+        self.scalars      = None  # scalar quantities: time of shock breakout..
+        self.vFe          = None  # Holds v_Fe(t)
+        self.tau          = None  # Hold tau_sob
 
         self.load_config(config=config)
 
         if load_all:
             self.load_all(reload=reload, save=save, load_profiles=load_profiles)
+        
+        self.len = len(self.dat["time"])-1
 
         t1 = time.time()
         self.printv(f'Model load time: {t1-t0:.3f} s')
@@ -188,6 +192,16 @@ class Simulation:
     #                   Manipulation
     # =======================================================
 
+    def clear_vFe(self):
+        """
+        Clear the self.vFe array.
+        """
+
+        if (self.vFe != None):
+            self.vFe = None
+        else:
+            print("vFe is already empty.")
+
     def get_dat_day(self, day=50.0):
         """
         Isolate dat quantities at a specific day post shock breakout, 50 by default
@@ -260,22 +274,35 @@ class Simulation:
         NOTE: Not supported for default version of SNEC. I've added an additional 
         profile to output the hydrogen profiles. These are used to approximate the 
         iron 56 number density - Fe56 mass fractions are preffered, but not necessarily available
-        in th eprogenitor set I was using.
+        in the progenitor set I was using.
         """
 
         if "H_frac" not in self.config['profiles']['fields']:
-            raise ValueError(f'mass fraction profile not supplied.')
+            raise ValueError(f'Mass fraction profile not supplied.')
 
         if (self.solo_profile.day != day):
             self.get_profile_day(day=day)
 
+        # NOTE: This can be duplicated if you call snacs.vel_FeII extra times
+        # It just keeps appending until reloaded.
+        if (self.vFe == None):
+            self.vFe = []
+
+        if (self.tau == None):
+            self.tau = []
+
         tau = quantities.tau_sob(density = self.solo_profile['rho'], 
                                 temp=self.solo_profile['temp'], 
                                 X=self.solo_profile['H_frac'], 
-                                t_exp = 50.0 + self.scalars['t_sb']/86400)
+                                t_exp = day + self.scalars['t_sb']/86400)
+
+        self.tau.append( tau )
         
         self.scalars['v_Fe'] = quantities.iron_velocity(
                                     self.solo_profile['vel'], tau_sob=tau)
+
+        self.vFe.append( quantities.iron_velocity(
+                                    self.solo_profile['vel'], tau_sob=tau) )
 
     def compute_total_energy(self, day=0.0):
         """
